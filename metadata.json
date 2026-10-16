@@ -1,0 +1,7 @@
+{
+  "name": "DocuBridge - Multilingual Loan Application Intake",
+  "description": "Multi-agent intake platform that processes multilingual loan documents with page bounding-box citations, customer voice note translation, cross-document arithmetic checks, and fraud/prompt injection screening.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
