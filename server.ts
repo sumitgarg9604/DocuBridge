@@ -659,7 +659,69 @@ app.post('/api/agent/text-to-speech', async (req, res) => {
 
 // Voice note processing endpoint (Takes native audio or text simulation, translates and extracts loan officer context)
 app.post('/api/agent/transcribe-voice', async (req, res) => {
-  const { language, transcriptHint, audioDurationSeconds } = req.body;
+  const { language, transcriptHint, audioDurationSeconds, audioBase64, mimeType } = req.body;
+
+  // Real microphone audio path: Gemini's native multimodal audio understanding, no separate Speech-to-Text API needed.
+  if (aiClient && audioBase64) {
+    try {
+      const prompt = `You are the DocuBridge Multilingual Voice Note Agent for a bank loan intake system.
+A loan applicant just recorded a short voice note${language ? `, likely in ${language}` : ''}.
+Listen to the audio and respond with:
+1. "transcriptOriginal": exact transcription in the original spoken language's native script.
+2. "detectedLanguage": the language you heard, one of: Hindi, Tamil, Bengali, Gujarati, Telugu, Bahasa Indonesia, Vietnamese, Japanese, Korean, Chinese (Simplified), Thai, English.
+3. "transcriptEn": a verified, natural English translation.
+4. "summaryEn": a short executive summary for the bank loan officer of what the note explains (e.g. address mismatch, employer name variation, income clarification). If the audio is silent, unintelligible, or unrelated to a loan document, say so plainly here.
+5. "officerContext": one sentence on why this matters for underwriting.
+Return JSON only: { "transcriptOriginal": "...", "detectedLanguage": "...", "transcriptEn": "...", "summaryEn": "...", "officerContext": "..." }`;
+
+      const audioModelsToTry = ['gemini-3.5-flash', 'gemini-3.8-flash', 'gemini-2.5-flash-lite'];
+      let response: any = null;
+      let lastAudioError: any = null;
+
+      for (const model of audioModelsToTry) {
+        try {
+          response = await aiClient.models.generateContent({
+            model,
+            contents: [
+              {
+                role: 'user',
+                parts: [{ text: prompt }, { inlineData: { mimeType: mimeType || 'audio/webm', data: audioBase64 } }],
+              },
+            ],
+            config: { responseMimeType: 'application/json' },
+          });
+          if (response.text) break;
+        } catch (err) {
+          lastAudioError = err;
+          response = null;
+        }
+      }
+
+      if (!response || !response.text) {
+        throw lastAudioError || new Error('All audio-capable models failed.');
+      }
+
+      let cleanText = response.text.trim();
+      if (cleanText.startsWith('```')) {
+        cleanText = cleanText.replace(/^```json\s*/, '').replace(/^```\s*/, '').replace(/\s*```$/, '');
+      }
+      const parsed = JSON.parse(cleanText);
+
+      return res.json({
+        id: `VN-${Date.now()}`,
+        originalLanguage: parsed.detectedLanguage || language || 'English',
+        audioDurationSeconds: audioDurationSeconds || 0,
+        transcriptOriginal: parsed.transcriptOriginal || '',
+        transcriptEn: parsed.transcriptEn || '',
+        summaryEn: parsed.summaryEn || 'Customer provided a clarifying voice note.',
+        officerContext: parsed.officerContext || 'Customer proactively addressed a document detail.',
+        contradictsDocument: false,
+      });
+    } catch (err: any) {
+      console.error('Real audio transcription failed:', err?.message || err);
+      return res.status(500).json({ error: 'Voice note transcription failed. Please try again.' });
+    }
+  }
 
   if (aiClient && transcriptHint) {
     try {

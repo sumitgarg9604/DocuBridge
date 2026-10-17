@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { ApplicantCase, DocType, Language, DocRecord, DocField, FraudFlag } from '../types/docubridge';
+import { ApplicantCase, DocType, Language, DocRecord, DocField, FraudFlag, VoiceNote } from '../types/docubridge';
 import {
   UploadCloud,
   CheckCircle2,
@@ -41,6 +41,12 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const [voiceSeconds, setVoiceSeconds] = useState(0);
   const [voiceRecorded, setVoiceRecorded] = useState(currentCase.voiceNotes.length > 0);
+  const [isTranscribingVoice, setIsTranscribingVoice] = useState(false);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const voiceTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const recordStartTimeRef = useRef<number>(0);
   const [isProcessingUpload, setIsProcessingUpload] = useState(false);
   const [activeTab, setActiveTab] = useState<'checklist' | 'voice' | 'confirm' | 'history'>('checklist');
   const [isMobileFrame, setIsMobileFrame] = useState(true);
@@ -856,25 +862,113 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
     }, 600);
   };
 
-  // Simulate voice recording
-  const handleToggleVoiceRecord = () => {
-    if (!isRecordingVoice) {
+  const MAX_VOICE_SECONDS = 30;
+
+  const stopRecording = () => {
+    if (voiceTimerRef.current) {
+      clearInterval(voiceTimerRef.current);
+      voiceTimerRef.current = null;
+    }
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    setIsRecordingVoice(false);
+  };
+
+  const submitVoiceNote = async (blob: Blob, durationSeconds: number) => {
+    setIsTranscribingVoice(true);
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(((reader.result as string) || '').split(',')[1] || '');
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+
+      const res = await fetch('/api/agent/transcribe-voice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          language: selectedLanguage,
+          audioBase64: base64,
+          mimeType: blob.type || 'audio/webm',
+          audioDurationSeconds: durationSeconds,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Transcription request failed');
+      const data = await res.json();
+
+      const newNote: VoiceNote = {
+        id: data.id || `VN-${Date.now()}`,
+        originalLanguage: (data.originalLanguage as Language) || selectedLanguage,
+        audioDurationSeconds: data.audioDurationSeconds || durationSeconds,
+        transcriptOriginal: data.transcriptOriginal || '',
+        transcriptEn: data.transcriptEn || '',
+        summaryEn: data.summaryEn || '',
+        officerContext: data.officerContext || '',
+        contradictsDocument: false,
+      };
+
+      onUpdateCase({
+        ...currentCase,
+        voiceNotes: [newNote, ...currentCase.voiceNotes],
+      });
+      setVoiceRecorded(true);
+    } catch (err) {
+      console.error('Voice note submission error:', err);
+      setVoiceError('Could not process your voice note. Please check your connection and try again.');
+    } finally {
+      setIsTranscribingVoice(false);
+    }
+  };
+
+  // Real microphone capture via MediaRecorder, transcribed by Gemini's native audio understanding.
+  const handleToggleVoiceRecord = async () => {
+    if (isRecordingVoice) {
+      stopRecording();
+      return;
+    }
+
+    setVoiceError(null);
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const preferredMime = ['audio/webm', 'audio/mp4', 'audio/ogg'].find(
+        (m) => typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported(m)
+      );
+      const recorder = preferredMime ? new MediaRecorder(stream, { mimeType: preferredMime }) : new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        const blob = new Blob(audioChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        const elapsedSeconds = Math.max(1, Math.round((Date.now() - recordStartTimeRef.current) / 1000));
+        submitVoiceNote(blob, elapsedSeconds);
+      };
+
+      recorder.start();
+      recordStartTimeRef.current = Date.now();
       setIsRecordingVoice(true);
       setVoiceSeconds(0);
-      const timer = setInterval(() => {
+
+      voiceTimerRef.current = setInterval(() => {
         setVoiceSeconds((s) => {
-          if (s >= 10) {
-            clearInterval(timer);
-            setIsRecordingVoice(false);
-            setVoiceRecorded(true);
-            return 10;
+          if (s + 1 >= MAX_VOICE_SECONDS) {
+            stopRecording();
+            return MAX_VOICE_SECONDS;
           }
           return s + 1;
         });
       }, 1000);
-    } else {
-      setIsRecordingVoice(false);
-      setVoiceRecorded(true);
+    } catch (err) {
+      console.error('Microphone access error:', err);
+      setVoiceError('Microphone access denied or unavailable. Please allow microphone permission and try again.');
     }
   };
 
@@ -1288,17 +1382,34 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
               <div className="p-5 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 text-center flex flex-col items-center justify-center">
                 <button
                   onClick={handleToggleVoiceRecord}
+                  disabled={isTranscribingVoice}
                   className={`w-20 h-20 rounded-full flex flex-col items-center justify-center shadow-xl transition-all transform active:scale-95 ${
                     isRecordingVoice
                       ? 'bg-rose-600 text-white animate-pulse ring-4 ring-rose-500/30'
+                      : isTranscribingVoice
+                      ? 'bg-slate-700 text-slate-300 cursor-wait'
                       : 'bg-emerald-600 hover:bg-emerald-500 text-white'
                   }`}
                 >
-                  <Mic className="w-8 h-8" />
+                  {isTranscribingVoice ? (
+                    <Loader2 className="w-8 h-8 animate-spin" />
+                  ) : (
+                    <Mic className="w-8 h-8" />
+                  )}
                   <span className="text-[10px] font-bold mt-1">
-                    {isRecordingVoice ? `${voiceSeconds}s` : 'TAP TO RECORD'}
+                    {isTranscribingVoice
+                      ? 'PROCESSING...'
+                      : isRecordingVoice
+                      ? `${voiceSeconds}s — TAP TO STOP`
+                      : 'TAP TO RECORD'}
                   </span>
                 </button>
+
+                {voiceError && (
+                  <div className="mt-3 px-3 py-2 rounded-lg bg-rose-500/15 border border-rose-500/35 text-[11px] text-rose-200 max-w-xs">
+                    {voiceError}
+                  </div>
+                )}
 
                 <p className="text-xs text-slate-400 mt-3 italic max-w-xs flex items-start gap-1.5 justify-center">
                   <span>{t.voiceNoteHelper}</span>
@@ -1329,15 +1440,26 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                     </span>
                   </div>
 
-                  <div className="p-2.5 rounded bg-slate-950/70 border border-slate-800 text-[11px]">
-                    <div className="text-slate-400 text-[10px]">Original Audio Transcript ({note.originalLanguage}):</div>
-                    <div className="text-slate-200 italic mt-0.5 font-sans">{note.transcriptOriginal}</div>
-                  </div>
+                  {note.transcriptOriginal || note.transcriptEn ? (
+                    <>
+                      <div className="p-2.5 rounded bg-slate-950/70 border border-slate-800 text-[11px]">
+                        <div className="text-slate-400 text-[10px]">Original Audio Transcript ({note.originalLanguage}):</div>
+                        <div className="text-slate-200 italic mt-0.5 font-sans">{note.transcriptOriginal}</div>
+                      </div>
 
-                  <div className="p-2.5 rounded bg-blue-950/30 border border-blue-900/40 text-[11px]">
-                    <div className="text-blue-300 text-[10px] font-medium">Bank Officer English Translation:</div>
-                    <div className="text-white mt-0.5">{note.transcriptEn}</div>
-                  </div>
+                      <div className="p-2.5 rounded bg-blue-950/30 border border-blue-900/40 text-[11px]">
+                        <div className="text-blue-300 text-[10px] font-medium">Bank Officer English Translation:</div>
+                        <div className="text-white mt-0.5">{note.transcriptEn}</div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="p-2.5 rounded bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-200 flex items-start gap-2">
+                      <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                      <span>
+                        {note.summaryEn || 'No speech detected in this recording. Please try recording again closer to the microphone.'}
+                      </span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
