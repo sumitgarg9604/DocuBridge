@@ -21,7 +21,10 @@ import {
   FileUp,
   RefreshCw,
   ShieldAlert,
+  History,
+  Eye,
 } from 'lucide-react';
+import { SpeakerButton } from './SpeakerButton';
 
 interface CustomerPortalProps {
   currentCase: ApplicantCase;
@@ -39,7 +42,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
   const [voiceSeconds, setVoiceSeconds] = useState(0);
   const [voiceRecorded, setVoiceRecorded] = useState(currentCase.voiceNotes.length > 0);
   const [isProcessingUpload, setIsProcessingUpload] = useState(false);
-  const [activeTab, setActiveTab] = useState<'checklist' | 'voice' | 'confirm'>('checklist');
+  const [activeTab, setActiveTab] = useState<'checklist' | 'voice' | 'confirm' | 'history'>('checklist');
   const [isMobileFrame, setIsMobileFrame] = useState(true);
   const [fieldConfirmed, setFieldConfirmed] = useState(false);
 
@@ -70,6 +73,10 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       flagMistakeBtn: 'कोई गलती है? सुधारें',
       simBlurryBtn: 'धुंधली फोटो का परीक्षण करें (डेमो)',
       simRetakeBtn: 'साफ फोटो अपलोड करें (स्वीकृत)',
+      historyTab: 'इतिहास',
+      historyTitle: 'पहुंच इतिहास',
+      historySub: 'देखें कि आपके आवेदन को कब और किसने देखा या अपडेट किया',
+      emptyHistory: 'अभी तक कोई गतिविधि दर्ज नहीं हुई है।',
     },
     Tamil: {
       loanTitle: 'தனிநபர் கடன் விண்ணப்பம்',
@@ -92,6 +99,10 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       flagMistakeBtn: 'தவறை சுட்டிக்காட்டு',
       simBlurryBtn: 'மங்கலான புகைப்பட சோதனை (Demo)',
       simRetakeBtn: 'தெளிவான நகலை பதிவேற்று (Approved)',
+      historyTab: 'வரலாறு',
+      historyTitle: 'அணுகல் வரலாறு',
+      historySub: 'உங்கள் விண்ணப்பத்தை யார், எப்போது பார்த்தார்கள் என்பதை பாருங்கள்',
+      emptyHistory: 'இதுவரை எந்த செயல்பாடும் பதிவு செய்யப்படவில்லை.',
     },
     'Bahasa Indonesia': {
       loanTitle: 'Pengajuan Pinjaman Mikro',
@@ -114,6 +125,10 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       flagMistakeBtn: 'Laporkan Kesalahan',
       simBlurryBtn: 'Simulasi Dokumen Buram',
       simRetakeBtn: 'Unggah Ulang Jelas',
+      historyTab: 'Riwayat',
+      historyTitle: 'Riwayat Akses',
+      historySub: 'Lihat siapa yang melihat atau memperbarui aplikasi Anda dan kapan',
+      emptyHistory: 'Belum ada aktivitas akses yang tercatat.',
     },
     Vietnamese: {
       loanTitle: 'Hồ Sơ Vay Tiêu Dùng',
@@ -136,6 +151,10 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       flagMistakeBtn: 'Báo sai sót',
       simBlurryBtn: 'Thử nghiệm ảnh mờ',
       simRetakeBtn: 'Tải lại ảnh rõ',
+      historyTab: 'Lịch Sử',
+      historyTitle: 'Lịch Sử Truy Cập',
+      historySub: 'Xem ai đã xem hoặc cập nhật hồ sơ của bạn và khi nào',
+      emptyHistory: 'Chưa có hoạt động truy cập nào được ghi nhận.',
     },
     English: {
       loanTitle: 'Retail Personal Loan Application',
@@ -158,6 +177,10 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       flagMistakeBtn: 'Flag a Correction',
       simBlurryBtn: 'Simulate Blurry Upload (Triggers Feedback)',
       simRetakeBtn: 'Upload Clean Document (Recognised)',
+      historyTab: 'History',
+      historyTitle: 'Access History',
+      historySub: 'See who viewed or updated your application and when',
+      emptyHistory: 'No access activity recorded yet.',
     },
     Bengali: {
       loanTitle: 'ব্যক্তিগত ঋণ আবেদন',
@@ -180,6 +203,10 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       flagMistakeBtn: 'ভুল সংশোধন করুন',
       simBlurryBtn: 'অস্পষ্ট ছবি পরীক্ষা (Demo)',
       simRetakeBtn: 'পরিষ্কার নথি আপলোড',
+      historyTab: 'ইতিহাস',
+      historyTitle: 'অ্যাক্সেস ইতিহাস',
+      historySub: 'কে এবং কখন আপনার আবেদন দেখেছেন বা আপডেট করেছেন তা দেখুন',
+      emptyHistory: 'এখনও কোনো অ্যাক্সেস কার্যকলাপ রেকর্ড করা হয়নি।',
     },
     Gujarati: {
       loanTitle: 'વ્યક્તિગત લોન અરજી',
@@ -202,6 +229,10 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       flagMistakeBtn: 'ભૂલ જણાવો',
       simBlurryBtn: 'ઝાંખા ફોટોનું પરીક્ષણ',
       simRetakeBtn: 'સ્પષ્ટ ફોટો અપલોડ કરો',
+      historyTab: 'ઇતિહાસ',
+      historyTitle: 'ઍક્સેસ ઇતિહાસ',
+      historySub: 'કોણે અને ક્યારે તમારી અરજી જોઈ અથવા અપડેટ કરી તે જુઓ',
+      emptyHistory: 'હજુ સુધી કોઈ ઍક્સેસ પ્રવૃત્તિ નોંધાઈ નથી.',
     },
     Telugu: {
       loanTitle: 'వ్యక్తిగత లోన్ దరఖాస్తు',
@@ -224,6 +255,10 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       flagMistakeBtn: 'సవరణ చేయండి',
       simBlurryBtn: 'అస్పష్టమైన ఫోటో టెస్ట్',
       simRetakeBtn: 'స్పష్టమైన కాపీ అప్‌లోడ్',
+      historyTab: 'చరిత్ర',
+      historyTitle: 'యాక్సెస్ చరిత్ర',
+      historySub: 'మీ దరఖాస్తును ఎవరు, ఎప్పుడు చూశారో లేదా అప్‌డేట్ చేశారో చూడండి',
+      emptyHistory: 'ఇంకా ఎలాంటి యాక్సెస్ కార్యకలాపం నమోదు కాలేదు.',
     },
     Japanese: {
       loanTitle: '個人ローン申込',
@@ -246,6 +281,10 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       flagMistakeBtn: '誤りを報告',
       simBlurryBtn: 'ぼやけた写真をテスト（デモ）',
       simRetakeBtn: '鮮明な書類をアップロード（承認済み）',
+      historyTab: '履歴',
+      historyTitle: 'アクセス履歴',
+      historySub: '誰がいつあなたの申込書を閲覧・更新したか確認できます',
+      emptyHistory: 'まだアクセス履歴はありません。',
     },
     Korean: {
       loanTitle: '개인 대출 신청',
@@ -268,6 +307,10 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       flagMistakeBtn: '오류 신고',
       simBlurryBtn: '흐린 사진 테스트 (데모)',
       simRetakeBtn: '선명한 서류 업로드 (승인됨)',
+      historyTab: '기록',
+      historyTitle: '접근 기록',
+      historySub: '누가 언제 신청서를 열람하거나 업데이트했는지 확인하세요',
+      emptyHistory: '아직 기록된 접근 활동이 없습니다.',
     },
     'Chinese (Simplified)': {
       loanTitle: '个人贷款申请',
@@ -290,6 +333,10 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       flagMistakeBtn: '标记错误',
       simBlurryBtn: '测试模糊照片（演示）',
       simRetakeBtn: '上传清晰文件（已验证）',
+      historyTab: '历史记录',
+      historyTitle: '访问历史',
+      historySub: '查看谁在何时查看或更新了您的申请',
+      emptyHistory: '尚无访问记录。',
     },
     Thai: {
       loanTitle: 'คำขอสินเชื่อส่วนบุคคล',
@@ -312,6 +359,10 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       flagMistakeBtn: 'แจ้งข้อผิดพลาด',
       simBlurryBtn: 'ทดสอบภาพเบลอ (เดโม)',
       simRetakeBtn: 'อัปโหลดเอกสารที่ชัดเจน (ยืนยันแล้ว)',
+      historyTab: 'ประวัติ',
+      historyTitle: 'ประวัติการเข้าถึง',
+      historySub: 'ดูว่าใครเข้าดูหรืออัปเดตใบสมัครของคุณและเมื่อใด',
+      emptyHistory: 'ยังไม่มีการบันทึกกิจกรรมการเข้าถึง',
     },
   };
 
@@ -983,6 +1034,20 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
             <CheckCircle2 className="w-3.5 h-3.5" />
             Confirm Data
           </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`flex-1 py-3 font-medium text-center border-b-2 transition flex items-center justify-center gap-1.5 ${
+              activeTab === 'history'
+                ? 'border-blue-500 text-blue-400'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <History className="w-3.5 h-3.5" />
+            {t.historyTab}
+            {currentCase.auditTrail.some((ev) => ev.customerVisible) && (
+              <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+            )}
+          </button>
         </div>
 
         {/* Content body */}
@@ -991,9 +1056,15 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
           {activeTab === 'checklist' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-white">{t.checklistTitle}</h3>
-                  <p className="text-[11px] text-slate-400">{t.checklistSub}</p>
+                <div className="flex items-start gap-2">
+                  <div>
+                    <h3 className="text-sm font-bold text-white">{t.checklistTitle}</h3>
+                    <p className="text-[11px] text-slate-400">{t.checklistSub}</p>
+                  </div>
+                  <SpeakerButton
+                    text={`${t.checklistTitle}. ${t.checklistSub}`}
+                    className="mt-0.5 text-blue-400 hover:text-blue-300"
+                  />
                 </div>
                 <div className="text-right">
                   <span className="text-xs font-mono text-emerald-400 font-bold">
@@ -1067,9 +1138,15 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                                   <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
                                   DOCUMENT REJECTED - NOT A VALID {docItem.name.toUpperCase()}
                                 </div>
-                                <div className="mt-1 leading-snug font-medium text-rose-100">
-                                  {docRecord?.customerMessage ||
-                                    'अपलोड की गई तस्वीर मान्य दस्तावेज नहीं है। कृपया असली दस्तावेज की साफ फोटो अपलोड करें।'}
+                                <div className="mt-1 leading-snug font-medium text-rose-100 flex items-start gap-1.5">
+                                  <span>
+                                    {docRecord?.customerMessage ||
+                                      'अपलोड की गई तस्वीर मान्य दस्तावेज नहीं है। कृपया असली दस्तावेज की साफ फोटो अपलोड करें।'}
+                                  </span>
+                                  <SpeakerButton
+                                    text={docRecord?.customerMessage || ''}
+                                    className="text-rose-300 hover:text-rose-200"
+                                  />
                                 </div>
                                 {docRecord?.qualityReason && (
                                   <div className="mt-1.5 text-[10px] text-rose-300/80 font-mono bg-rose-950/40 p-1.5 rounded border border-rose-500/20">
@@ -1086,9 +1163,15 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                                   <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
                                   RETAKE REQUIRED - CROPPED OR CUT-OFF PHOTO
                                 </div>
-                                <div className="mt-1 leading-snug font-medium text-amber-100">
-                                  {docRecord?.customerMessage ||
-                                    'दस्तावेज का किनारा या नंबर कटा हुआ है। कृपया पूरे दस्तावेज की साफ फोटो दोबारा लें।'}
+                                <div className="mt-1 leading-snug font-medium text-amber-100 flex items-start gap-1.5">
+                                  <span>
+                                    {docRecord?.customerMessage ||
+                                      'दस्तावेज का किनारा या नंबर कटा हुआ है। कृपया पूरे दस्तावेज की साफ फोटो दोबारा लें।'}
+                                  </span>
+                                  <SpeakerButton
+                                    text={docRecord?.customerMessage || ''}
+                                    className="text-amber-300 hover:text-amber-200"
+                                  />
                                 </div>
                                 {docRecord?.qualityReason && (
                                   <div className="mt-1.5 text-[10px] text-amber-300/80 font-mono bg-amber-950/40 p-1.5 rounded border border-amber-500/20">
@@ -1102,6 +1185,10 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                               <div className="mt-1.5 text-[10px] text-emerald-400 flex items-center gap-1">
                                 <Check className="w-3 h-3" />
                                 {docRecord.customerMessage}
+                                <SpeakerButton
+                                  text={docRecord.customerMessage}
+                                  className="text-emerald-400 hover:text-emerald-300"
+                                />
                               </div>
                             )}
                           </div>
@@ -1212,7 +1299,10 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                   </span>
                 </button>
 
-                <p className="text-xs text-slate-400 mt-3 italic max-w-xs">{t.voiceNoteHelper}</p>
+                <p className="text-xs text-slate-400 mt-3 italic max-w-xs flex items-start gap-1.5 justify-center">
+                  <span>{t.voiceNoteHelper}</span>
+                  <SpeakerButton text={t.voiceNoteHelper} className="text-blue-400 hover:text-blue-300 not-italic" />
+                </p>
 
                 {isRecordingVoice && (
                   <div className="flex items-center gap-1 mt-4">
@@ -1324,6 +1414,48 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                   </button>
                 </div>
               )}
+            </div>
+          )}
+
+          {activeTab === 'history' && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-bold text-white">{t.historyTitle}</h3>
+                <p className="text-[11px] text-slate-400">{t.historySub}</p>
+              </div>
+
+              {(() => {
+                const visibleEvents = currentCase.auditTrail.filter((ev) => ev.customerVisible);
+                if (visibleEvents.length === 0) {
+                  return (
+                    <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-400 text-center">
+                      {t.emptyHistory}
+                    </div>
+                  );
+                }
+                return (
+                  <div className="space-y-2.5">
+                    {visibleEvents.map((ev) => (
+                      <div
+                        key={ev.id}
+                        className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-start gap-2.5"
+                      >
+                        <div className="w-7 h-7 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
+                          <Eye className="w-3.5 h-3.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-semibold text-white truncate">{ev.actor}</span>
+                            <span className="text-[10px] font-mono text-slate-500 shrink-0">{ev.timestamp}</span>
+                          </div>
+                          <div className="text-[11px] text-blue-300 font-medium mt-0.5">{ev.action}</div>
+                          <div className="text-[11px] text-slate-400 mt-0.5 leading-relaxed">{ev.details}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>

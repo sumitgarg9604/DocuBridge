@@ -134,6 +134,7 @@ export interface AuditEvent {
   agentName?: string;
   details: string;
   severity?: 'info' | 'warning' | 'alert';
+  customerVisible?: boolean;
 }
 
 export interface ApplicantCase {

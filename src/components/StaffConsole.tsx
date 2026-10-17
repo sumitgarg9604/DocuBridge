@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ApplicantCase,
   DocType,
@@ -61,6 +61,27 @@ export const StaffConsole: React.FC<StaffConsoleProps> = ({
   const [showAuditDrawer, setShowAuditDrawer] = useState<boolean>(false);
   const [officerDecisionMessage, setOfficerDecisionMessage] = useState<string | null>(null);
 
+  // Log a customer-visible "file accessed" event each time an officer opens this case
+  useEffect(() => {
+    const accessAudit: AuditEvent = {
+      id: `AUD-VIEW-${Date.now()}`,
+      timestamp: new Date().toLocaleTimeString('en-US', { hour12: false }) + ' IST',
+      actor: 'Officer Amit Kumar (Loan Ops)',
+      actorRole: 'officer',
+      action: 'Case File Accessed',
+      details: `Officer opened and reviewed the case file for ${currentCase.applicantName}.`,
+      severity: 'info',
+      customerVisible: true,
+    };
+
+    onUpdateCase({
+      ...currentCase,
+      auditTrail: [accessAudit, ...currentCase.auditTrail],
+    });
+    // Intentionally only re-fires when the officer switches to a different case.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentCase.id]);
+
   // Available docs for current case
   const docList = Object.entries(currentCase.documents)
     .filter(([_, doc]) => doc !== null)
@@ -92,6 +113,7 @@ export const StaffConsole: React.FC<StaffConsoleProps> = ({
         ? 'Aadhaar, PAN and Bank Account digits masked to 4-character suffixes.'
         : 'Logged KYC access. Aadhaar and account numbers revealed for verification under DPDP Act.',
       severity: nextState ? 'info' : 'warning',
+      customerVisible: !nextState,
     };
 
     onUpdateCase({

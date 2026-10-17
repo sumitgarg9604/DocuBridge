@@ -587,6 +587,70 @@ Return JSON ONLY:
   });
 });
 
+// Wrap raw 16-bit PCM audio (as returned by Gemini TTS) in a WAV header so browsers can play it directly.
+function pcmToWav(pcmBase64: string, sampleRate = 24000, channels = 1, bitDepth = 16): string {
+  const pcmBuffer = Buffer.from(pcmBase64, 'base64');
+  const blockAlign = (channels * bitDepth) / 8;
+  const byteRate = sampleRate * blockAlign;
+  const header = Buffer.alloc(44);
+
+  header.write('RIFF', 0);
+  header.writeUInt32LE(36 + pcmBuffer.length, 4);
+  header.write('WAVE', 8);
+  header.write('fmt ', 12);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20); // PCM format
+  header.writeUInt16LE(channels, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(byteRate, 28);
+  header.writeUInt16LE(blockAlign, 32);
+  header.writeUInt16LE(bitDepth, 34);
+  header.write('data', 36);
+  header.writeUInt32LE(pcmBuffer.length, 40);
+
+  return Buffer.concat([header, pcmBuffer]).toString('base64');
+}
+
+// Text-to-Speech endpoint: reads back customer-facing messages aloud in their native language.
+// Powered by Gemini's native TTS model — reuses the same GEMINI_API_KEY, no separate Cloud TTS credentials needed.
+app.post('/api/agent/text-to-speech', async (req, res) => {
+  const { text } = req.body;
+
+  if (!text || typeof text !== 'string') {
+    return res.status(400).json({ error: 'Missing "text" to synthesize.' });
+  }
+
+  if (!aiClient) {
+    return res.status(503).json({ error: 'Text-to-Speech unavailable: Gemini API key not configured.' });
+  }
+
+  try {
+    const response = await aiClient.models.generateContent({
+      model: 'gemini-2.5-flash-preview-tts',
+      contents: [{ role: 'user', parts: [{ text }] }],
+      config: {
+        responseModalities: ['AUDIO'],
+        speechConfig: {
+          voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } },
+        },
+      },
+    });
+
+    const audioPart = response.candidates?.[0]?.content?.parts?.find((p: any) => p.inlineData);
+    const pcmBase64 = audioPart?.inlineData?.data;
+
+    if (!pcmBase64) {
+      throw new Error('No audio data returned from Gemini TTS.');
+    }
+
+    const wavBase64 = pcmToWav(pcmBase64);
+    return res.json({ audioBase64: wavBase64, mimeType: 'audio/wav' });
+  } catch (err: any) {
+    console.error('Text-to-Speech generation failed:', err?.message || err);
+    return res.status(500).json({ error: 'Text-to-Speech generation failed.' });
+  }
+});
+
 // Voice note processing endpoint (Takes native audio or text simulation, translates and extracts loan officer context)
 app.post('/api/agent/transcribe-voice', async (req, res) => {
   const { language, transcriptHint, audioDurationSeconds } = req.body;
