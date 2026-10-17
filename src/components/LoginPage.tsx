@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { UserRole, UserSession } from '../types/auth';
 import { ApplicantCase } from '../types/docubridge';
+import { ApplicationTypePreviewModal } from './ApplicationTypePreviewModal';
 import {
   Layers,
   Smartphone,
@@ -15,7 +16,49 @@ import {
   AlertCircle,
   HelpCircle,
   UserPlus,
+  Wallet,
+  Home,
+  HeartPulse,
+  Rocket,
 } from 'lucide-react';
+
+type ApplicationTypeId = 'personal_loan' | 'home_loan' | 'insurance_claim';
+
+interface ApplicationTypeDef {
+  id: ApplicationTypeId;
+  label: string;
+  icon: typeof Wallet;
+  tagline: string;
+  checklist: string[];
+  live: boolean;
+}
+
+const APPLICATION_TYPES: ApplicationTypeDef[] = [
+  {
+    id: 'personal_loan',
+    label: 'Personal Loan',
+    icon: Wallet,
+    tagline: 'Retail unsecured lending intake — fully live on the DocuBridge Gemini pipeline.',
+    checklist: ['Aadhaar Card', 'PAN Card', 'Latest Salary Slips (2 Months)', 'Bank Statement (3 Months)', 'Proof of Address'],
+    live: true,
+  },
+  {
+    id: 'home_loan',
+    label: 'Home Loan',
+    icon: Home,
+    tagline: 'Secured mortgage intake with property title verification and long-horizon income checks.',
+    checklist: ['Aadhaar Card', 'PAN Card', 'Form 16 / Latest ITR', 'Bank Statement (6 Months)', 'Property Title Deed & Sale Agreement'],
+    live: false,
+  },
+  {
+    id: 'insurance_claim',
+    label: 'Insurance Claim',
+    icon: HeartPulse,
+    tagline: 'Claims intake for health, auto or life policies — same fraud screening, adapted document set.',
+    checklist: ['Policy Document', 'Claim Form', 'Identity Proof (Aadhaar)', 'Incident / Medical Report', 'Bank Statement (for Payout)'],
+    live: false,
+  },
+];
 
 interface LoginPageProps {
   onLogin: (session: UserSession, targetApplicantId?: string) => void;
@@ -29,6 +72,16 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, cases, onOpenCrea
   const [password, setPassword] = useState('');
   const [selectedApplicantId, setSelectedApplicantId] = useState<string>(cases[0]?.id || 'APP-2026-IN-8491');
   const [showGoogleNotice, setShowGoogleNotice] = useState(false);
+  const [selectedAppType, setSelectedAppType] = useState<ApplicationTypeId>('personal_loan');
+  const [previewType, setPreviewType] = useState<ApplicationTypeDef | null>(null);
+
+  const handleSelectAppType = (def: ApplicationTypeDef) => {
+    if (def.live) {
+      setSelectedAppType(def.id);
+    } else {
+      setPreviewType(def);
+    }
+  };
 
   const handleStandardSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,6 +154,54 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, cases, onOpenCrea
           Enterprise Multilingual Loan Intake & Underwriting System
         </p>
       </div>
+
+      {/* Application Type Marketplace Strip */}
+      <div className="w-full max-w-md z-10 mb-5">
+        <label className="text-xs font-semibold text-slate-400 block mb-2 text-center">
+          One Platform. Every Application Type.
+        </label>
+        <div className="grid grid-cols-3 gap-2">
+          {APPLICATION_TYPES.map((def) => {
+            const Icon = def.icon;
+            const isActive = def.live && selectedAppType === def.id;
+            return (
+              <button
+                key={def.id}
+                type="button"
+                onClick={() => handleSelectAppType(def)}
+                className={`relative p-2.5 rounded-xl border text-center transition cursor-pointer ${
+                  isActive
+                    ? 'bg-blue-600/20 border-blue-500 shadow'
+                    : 'bg-slate-900/80 border-slate-800 hover:border-slate-700'
+                }`}
+              >
+                {def.live ? (
+                  <span className="absolute top-1 right-1 text-[8px] font-bold uppercase tracking-wider text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-1.5 py-0.5">
+                    Live
+                  </span>
+                ) : (
+                  <span className="absolute top-1 right-1 text-[8px] font-bold uppercase tracking-wider text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-full px-1 py-0.5 flex items-center gap-0.5">
+                    <Rocket className="w-2 h-2" />
+                  </span>
+                )}
+                <Icon className={`w-4 h-4 mx-auto mb-1 ${isActive ? 'text-blue-400' : 'text-slate-400'}`} />
+                <div className={`text-[10px] font-semibold ${isActive ? 'text-white' : 'text-slate-300'}`}>
+                  {def.label}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <ApplicationTypePreviewModal
+        isOpen={previewType !== null}
+        onClose={() => setPreviewType(null)}
+        icon={previewType?.icon || Home}
+        title={previewType?.label || ''}
+        tagline={previewType?.tagline || ''}
+        checklist={previewType?.checklist || []}
+      />
 
       {/* Main Login Card */}
       <div className="w-full max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-md z-10 space-y-6">

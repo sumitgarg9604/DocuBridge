@@ -15,7 +15,11 @@ export type Language =
   | 'Vietnamese'
   | 'English'
   | 'Gujarati'
-  | 'Telugu';
+  | 'Telugu'
+  | 'Japanese'
+  | 'Korean'
+  | 'Chinese (Simplified)'
+  | 'Thai';
 
 export type DocQuality = 'ok' | 'retake' | 'wrong_doc';
 

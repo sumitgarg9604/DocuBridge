@@ -1,6 +1,6 @@
 {
-  "name": "DocuBridge - Multilingual Loan Application Intake",
-  "description": "Multi-agent intake platform that processes multilingual loan documents with page bounding-box citations, customer voice note translation, cross-document arithmetic checks, and fraud/prompt injection screening.",
+  "name": "DocuBridge - Multilingual Financial Intake Platform",
+  "description": "Bank-agnostic, multi-agent document intake platform that any lender or insurer can plug into. Processes multilingual loan and insurance documents (Hindi, Tamil, Bengali, Gujarati, Telugu, Bahasa Indonesia, Vietnamese, Japanese, Korean, Chinese, Thai, English) with page bounding-box citations, customer voice note translation, cross-document arithmetic reconciliation, and fraud/prompt-injection screening. Personal Loan intake runs fully live on Gemini; Home Loan and Insurance Claim intake are previewed on the same pipeline.",
   "requestFramePermissions": ["camera", "microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

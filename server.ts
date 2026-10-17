@@ -648,7 +648,7 @@ app.post('/api/agent/draft-request', async (req, res) => {
 Write a polite, reassuring and clear SMS/WhatsApp notification to a loan applicant named "${applicantName}".
 Target language: ${targetLanguage || 'Hindi'}.
 Reason: Bank loan officer needs them to provide: "${missingDocType}" because "${reasonEn}".
-Keep it friendly, under 60 words, in native script (Devanagari for Hindi, Tamil script for Tamil, Indonesian for Bahasa Indonesia).
+Keep it friendly, under 60 words, in native script (Devanagari for Hindi, Tamil script for Tamil, Indonesian for Bahasa Indonesia, Kanji/Hiragana/Katakana for Japanese, Hangul for Korean, Simplified Hanzi for Chinese, Thai script for Thai).
 Return JSON only: { "messageOriginal": "...", "messageEn": "..." }`;
 
       const response = await aiClient.models.generateContent({
@@ -676,6 +676,22 @@ Return JSON only: { "messageOriginal": "...", "messageEn": "..." }`;
     'Bahasa Indonesia': {
       messageOriginal: `Halo ${applicantName}, untuk melanjutkan pengajuan pinjaman Anda, kami memerlukan ${missingDocType} (${reasonEn}). Silakan unggah kembali melalui tautan aplikasi. Terima kasih!`,
       messageEn: `Hello ${applicantName}, to proceed with your loan application, we require your ${missingDocType} (${reasonEn}). Please upload it via the app. Thank you!`,
+    },
+    Japanese: {
+      messageOriginal: `${applicantName}様、ローンのお申込みを進めるために${missingDocType}が必要です（${reasonEn}）。アプリ内のリンクからアップロードしてください。よろしくお願いいたします。`,
+      messageEn: `Hello ${applicantName}, to process your loan application further, we need your ${missingDocType} (${reasonEn}). Please upload it via the link in the app. Thank you!`,
+    },
+    Korean: {
+      messageOriginal: `${applicantName}님, 대출 신청을 계속 진행하기 위해 ${missingDocType}가 필요합니다 (${reasonEn}). 앱 내 링크를 통해 업로드해 주세요. 감사합니다!`,
+      messageEn: `Hello ${applicantName}, to process your loan application further, we need your ${missingDocType} (${reasonEn}). Please upload it via the link in the app. Thank you!`,
+    },
+    'Chinese (Simplified)': {
+      messageOriginal: `您好 ${applicantName}，为继续处理您的贷款申请，我们需要您提供${missingDocType}（${reasonEn}）。请通过应用内链接上传。谢谢！`,
+      messageEn: `Hello ${applicantName}, to process your loan application further, we need your ${missingDocType} (${reasonEn}). Please upload it via the link in the app. Thank you!`,
+    },
+    Thai: {
+      messageOriginal: `สวัสดีคุณ ${applicantName} เพื่อดำเนินการสินเชื่อของคุณต่อไป เราต้องการ${missingDocType} (${reasonEn}) กรุณาอัปโหลดผ่านลิงก์ในแอป ขอบคุณค่ะ/ครับ!`,
+      messageEn: `Hello ${applicantName}, to process your loan application further, we need your ${missingDocType} (${reasonEn}). Please upload it via the link in the app. Thank you!`,
     },
   };
 

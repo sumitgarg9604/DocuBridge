@@ -69,6 +69,22 @@ export const RequestInfoModal: React.FC<RequestInfoModalProps> = ({
         orig: `Halo ${applicant.applicantName}, untuk melanjutkan pengajuan pinjaman Anda, kami memerlukan ${doc} (${rsn}). Silakan unggah kembali melalui tautan aplikasi. Terima kasih!`,
         en: `Hello ${applicant.applicantName}, to proceed with your loan application we require your ${doc} (${rsn}). Please upload it via the app. Thank you!`,
       },
+      Japanese: {
+        orig: `${applicant.applicantName}様、ローンのお申込みを進めるために${doc}が必要です（${rsn}）。アプリのリンクから安全にアップロードしてください。よろしくお願いいたします。`,
+        en: `Hello ${applicant.applicantName}, to proceed with your loan application we require your ${doc} (${rsn}). Please upload it via the app link. Thank you!`,
+      },
+      Korean: {
+        orig: `${applicant.applicantName}님, 대출 신청을 진행하기 위해 ${doc}가 필요합니다 (${rsn}). 앱 내 링크를 통해 안전하게 업로드해 주세요. 감사합니다!`,
+        en: `Hello ${applicant.applicantName}, to proceed with your loan application we require your ${doc} (${rsn}). Please upload it via the app link. Thank you!`,
+      },
+      'Chinese (Simplified)': {
+        orig: `您好 ${applicant.applicantName}，为了继续处理您的贷款申请，我们需要您提供${doc}（${rsn}）。请通过应用内链接安全上传。谢谢！`,
+        en: `Hello ${applicant.applicantName}, to proceed with your loan application we require your ${doc} (${rsn}). Please upload it via the app link. Thank you!`,
+      },
+      Thai: {
+        orig: `สวัสดีคุณ ${applicant.applicantName} เพื่อดำเนินการสินเชื่อของคุณต่อ เราต้องการ${doc} (${rsn}) กรุณาอัปโหลดผ่านลิงก์ในแอปอย่างปลอดภัย ขอบคุณค่ะ/ครับ!`,
+        en: `Hello ${applicant.applicantName}, to proceed with your loan application we require your ${doc} (${rsn}). Please upload it via the app link. Thank you!`,
+      },
     };
 
     const sel = fallbackTemplates[lang] || fallbackTemplates['Hindi'];
@@ -151,6 +167,10 @@ export const RequestInfoModal: React.FC<RequestInfoModalProps> = ({
                 <option value="Vietnamese">Tiếng Việt</option>
                 <option value="Bengali">বাংলা (Bengali)</option>
                 <option value="Gujarati">ગુજરાતી (Gujarati)</option>
+                <option value="Japanese">日本語 (Japanese)</option>
+                <option value="Korean">한국어 (Korean)</option>
+                <option value="Chinese (Simplified)">中文 (Chinese)</option>
+                <option value="Thai">ไทย (Thai)</option>
               </select>
             </div>
           </div>

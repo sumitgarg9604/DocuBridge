@@ -203,6 +203,10 @@ export const CreateCustomerModal: React.FC<CreateCustomerModalProps> = ({
                 <option value="Bengali">বাংলা (Bengali)</option>
                 <option value="Gujarati">ગુજરાતી (Gujarati)</option>
                 <option value="Telugu">తెలుగు (Telugu)</option>
+                <option value="Japanese">日本語 (Japanese)</option>
+                <option value="Korean">한국어 (Korean)</option>
+                <option value="Chinese (Simplified)">中文 (Chinese)</option>
+                <option value="Thai">ไทย (Thai)</option>
                 <option value="English">English</option>
               </select>
             </div>

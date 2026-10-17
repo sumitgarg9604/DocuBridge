@@ -21,6 +21,14 @@ export function generateCustomerCase(input: NewCustomerInput): ApplicantCase {
       ? 'SEA'
       : input.primaryLanguage === 'Vietnamese'
       ? 'VN'
+      : input.primaryLanguage === 'Japanese'
+      ? 'JP'
+      : input.primaryLanguage === 'Korean'
+      ? 'KR'
+      : input.primaryLanguage === 'Chinese (Simplified)'
+      ? 'CN'
+      : input.primaryLanguage === 'Thai'
+      ? 'TH'
       : 'IN';
   const id = `APP-2026-${countryPrefix}-${uniqueNum}`;
   const nowStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' + new Date().toLocaleTimeString('en-US', { hour12: false }) + ' IST';
@@ -31,7 +39,20 @@ export function generateCustomerCase(input: NewCustomerInput): ApplicantCase {
   const netPay = gross - deductions;
 
   // Currency symbol
-  const currencySymbol = input.primaryLanguage === 'Bahasa Indonesia' ? 'Rp' : input.primaryLanguage === 'Vietnamese' ? '₫' : '₹';
+  const currencySymbol =
+    input.primaryLanguage === 'Bahasa Indonesia'
+      ? 'Rp'
+      : input.primaryLanguage === 'Vietnamese'
+      ? '₫'
+      : input.primaryLanguage === 'Japanese'
+      ? '¥'
+      : input.primaryLanguage === 'Korean'
+      ? '₩'
+      : input.primaryLanguage === 'Chinese (Simplified)'
+      ? '¥'
+      : input.primaryLanguage === 'Thai'
+      ? '฿'
+      : '₹';
 
   const formatMoney = (amount: number) => {
     if (input.primaryLanguage === 'Bahasa Indonesia') {
@@ -39,6 +60,18 @@ export function generateCustomerCase(input: NewCustomerInput): ApplicantCase {
     }
     if (input.primaryLanguage === 'Vietnamese') {
       return `${amount.toLocaleString('vi-VN')} ₫`;
+    }
+    if (input.primaryLanguage === 'Japanese') {
+      return `¥${amount.toLocaleString('ja-JP')}`;
+    }
+    if (input.primaryLanguage === 'Korean') {
+      return `₩${amount.toLocaleString('ko-KR')}`;
+    }
+    if (input.primaryLanguage === 'Chinese (Simplified)') {
+      return `¥${amount.toLocaleString('zh-CN')}`;
+    }
+    if (input.primaryLanguage === 'Thai') {
+      return `฿${amount.toLocaleString('th-TH')}`;
     }
     return `₹${amount.toLocaleString('en-IN')}`;
   };
