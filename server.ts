@@ -674,7 +674,7 @@ Listen to the audio and respond with:
 5. "officerContext": one sentence on why this matters for underwriting.
 Return JSON only: { "transcriptOriginal": "...", "detectedLanguage": "...", "transcriptEn": "...", "summaryEn": "...", "officerContext": "..." }`;
 
-      const audioModelsToTry = ['gemini-3.5-flash', 'gemini-3.8-flash', 'gemini-2.5-flash-lite'];
+      const audioModelsToTry = ['gemini-3.5-flash', 'gemini-3.8-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'];
       let response: any = null;
       let lastAudioError: any = null;
 
@@ -691,7 +691,8 @@ Return JSON only: { "transcriptOriginal": "...", "detectedLanguage": "...", "tra
             config: { responseMimeType: 'application/json' },
           });
           if (response.text) break;
-        } catch (err) {
+        } catch (err: any) {
+          console.warn(`Audio model ${model} failed: ${err?.status || err?.message || err}. Trying next model...`);
           lastAudioError = err;
           response = null;
         }
