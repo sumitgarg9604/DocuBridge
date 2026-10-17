@@ -7,6 +7,7 @@ import {
   AuditEvent,
 } from '../types/docubridge';
 import { DocumentRenderer } from './DocumentRenderer';
+import { AgentTraceTimeline } from './AgentTraceTimeline';
 import {
   ShieldAlert,
   ShieldCheck,
@@ -528,7 +529,17 @@ export const StaffConsole: React.FC<StaffConsoleProps> = ({
               </div>
             </div>
 
-            {/* 5. EXTRACTED FIELDS TABLE (SIDE-BY-SIDE ORIGINAL SCRIPT + ENGLISH TRANSLATION) */}
+            {/* 5. LIVE AGENT EXECUTION TRACE */}
+            {activeDoc && (
+              <AgentTraceTimeline
+                docId={activeDoc.id}
+                quality={activeDoc.quality}
+                flags={activeDoc.flags}
+                logs={activeDoc.agentLogs}
+              />
+            )}
+
+            {/* 6. EXTRACTED FIELDS TABLE (SIDE-BY-SIDE ORIGINAL SCRIPT + ENGLISH TRANSLATION) */}
             {activeDoc && (
               <div className="rounded-xl border border-slate-800 bg-slate-900/50 p-4">
                 <div className="flex items-center justify-between mb-3">
@@ -590,7 +601,7 @@ export const StaffConsole: React.FC<StaffConsoleProps> = ({
               </div>
             )}
 
-            {/* 6. OFFICER DECISION CONTROLS */}
+            {/* 7. OFFICER DECISION CONTROLS */}
             <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/70 space-y-3">
               <div className="text-xs font-bold uppercase tracking-wider text-slate-300">
                 Loan Officer Credit Decision

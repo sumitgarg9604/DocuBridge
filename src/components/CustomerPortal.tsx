@@ -461,6 +461,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       fields: data.fields || [],
       flags: data.flags || [],
       customerMessage: data.customerMessage,
+      agentLogs: data.agentLogs || [],
       statusText:
         quality === 'ok'
           ? 'Verified by Agent Graph'

@@ -102,6 +102,7 @@ export interface DocRecord {
   metadataCheck?: DocMetadata;
   rawText?: string;
   statusText?: string;
+  agentLogs?: { agent: string; latencyMs: number; status: string }[];
 }
 
 export interface CrossDocumentValidation {

@@ -56,7 +56,13 @@ app.post('/api/agent/pipeline', async (req, res) => {
   const agentLogs: { agent: string; latencyMs: number; status: string }[] = [];
 
   // Model Armor prompt injection pre-screening on text content
+  const screenStart = Date.now();
   const screenResult = screenPromptInjection(textContent || fileName || '');
+  agentLogs.push({
+    agent: 'Model Armor Screener',
+    latencyMs: Date.now() - screenStart,
+    status: screenResult.isSuspicious ? 'INJECTION_DETECTED' : 'CLEAN',
+  });
 
   // 1. Quality Agent
   const qualityStart = Date.now();

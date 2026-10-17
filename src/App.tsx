@@ -3,6 +3,7 @@ import { PRESET_APPLICANTS } from './data/presetApplicants';
 import { ApplicantCase, DocRecord, DocType, AuditEvent } from './types/docubridge';
 import { UserSession } from './types/auth';
 import { Header } from './components/Header';
+import { ImpactStatsStrip } from './components/ImpactStatsStrip';
 import { CustomerPortal } from './components/CustomerPortal';
 import { StaffConsole } from './components/StaffConsole';
 import { RequestInfoModal } from './components/RequestInfoModal';
@@ -151,6 +152,8 @@ export default function App() {
         onToggleRole={handleToggleRole}
         onOpenCreateCustomer={() => setIsCreateCustomerOpen(true)}
       />
+
+      <ImpactStatsStrip />
 
       {/* Main Viewport Content based on authenticated role */}
       <main className="flex-1 overflow-auto">

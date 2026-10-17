@@ -154,6 +154,7 @@ export const UploadCustomDocModal: React.FC<UploadCustomDocModalProps> = ({
           fields: data.fields || [],
           flags: data.flags || [],
           customerMessage: data.customerMessage,
+          agentLogs: data.agentLogs || [],
           statusText: data.quality === 'ok' ? 'Verified by 7-Agent Graph' : 'Needs Clearer Copy',
         };
 
