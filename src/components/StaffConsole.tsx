@@ -8,6 +8,7 @@ import {
 } from '../types/docubridge';
 import { DocumentRenderer } from './DocumentRenderer';
 import { AgentTraceTimeline } from './AgentTraceTimeline';
+import { AnalyticsBoard } from './AnalyticsBoard';
 import {
   ShieldAlert,
   ShieldCheck,
@@ -264,6 +265,8 @@ export const StaffConsole: React.FC<StaffConsoleProps> = ({
           </button>
         </div>
       </div>
+
+      <AnalyticsBoard cases={cases} />
 
       {/* Main Split-Screen Workspace */}
       <div className="flex-1 flex overflow-hidden">
