@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { DocRecord, DocField, FraudFlag } from '../types/docubridge';
-import { ZoomIn, ZoomOut, RotateCcw, AlertTriangle, CheckCircle, ShieldAlert, Sparkles, Eye, Info } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, AlertTriangle, AlertCircle, CheckCircle, ShieldAlert, Sparkles, Eye, Info } from 'lucide-react';
 
 interface DocumentRendererProps {
   document: DocRecord;
@@ -26,8 +26,10 @@ export const DocumentRenderer: React.FC<DocumentRendererProps> = ({
   const isHindiSlip = document.id === 'DOC-8491-SALARY';
   const isTamilBill = document.id === 'DOC-8491-POA';
   const isKtp = document.id === 'DOC-4022-KTP';
-  const isAadhaar = document.docType === 'aadhaar_card';
-  const isPan = document.docType === 'pan_card';
+  const isWrongDoc = document.quality === 'wrong_doc';
+  const isRetake = document.quality === 'retake';
+  const isAadhaar = document.docType === 'aadhaar_card' && !isWrongDoc && !isRetake;
+  const isPan = document.docType === 'pan_card' && !isWrongDoc && !isRetake;
 
   return (
     <div className="flex flex-col h-full bg-slate-900/60 rounded-xl border border-slate-800 overflow-hidden">
@@ -290,6 +292,173 @@ export const DocumentRenderer: React.FC<DocumentRendererProps> = ({
             </div>
           )}
 
+          {/* REJECTED DOCUMENT INSPECTION VIEW */}
+          {isWrongDoc && (
+            <div className="p-6 font-sans text-slate-900 bg-rose-50/50 min-h-[480px] relative flex flex-col justify-between">
+              <div>
+                {/* Header */}
+                <div className="border-b-2 border-rose-600 pb-3 mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-lg bg-rose-600 text-white flex items-center justify-center font-bold shadow">
+                      <ShieldAlert className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-sm text-rose-950 uppercase tracking-wide">
+                        Document Authenticity Rejection
+                      </div>
+                      <div className="text-[11px] text-rose-800">
+                        Target Slot: {document.docType.replace(/_/g, ' ').toUpperCase()}
+                      </div>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded bg-rose-600 text-white font-mono text-[10px] font-bold shadow-sm">
+                    REJECTED ✗
+                  </span>
+                </div>
+
+                {/* Evidence Card */}
+                <div className="border border-rose-300 rounded-xl bg-white p-4 shadow-sm space-y-3.5">
+                  <div className="flex items-start gap-4">
+                    {document.fileUrl && document.fileUrl.startsWith('data:image') ? (
+                      <div className="w-36 h-36 rounded-lg overflow-hidden border-2 border-rose-400 bg-slate-950 shrink-0 relative group">
+                        <img
+                          src={document.fileUrl}
+                          alt="Uploaded file preview"
+                          className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-rose-900/30 flex items-center justify-center">
+                          <span className="bg-rose-900/90 text-white text-[9px] font-bold px-2 py-0.5 rounded shadow">
+                            Uploaded Photo
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="w-32 h-32 rounded-lg border-2 border-dashed border-rose-300 bg-rose-100/60 flex flex-col items-center justify-center shrink-0 text-rose-600">
+                        <ShieldAlert className="w-8 h-8" />
+                        <span className="text-[9px] font-bold mt-1.5 text-center px-2">
+                          Non-Aadhaar Photo
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="flex-1 space-y-2 text-xs">
+                      <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5 text-rose-600" />
+                        Quality Agent Inspection Finding:
+                      </div>
+                      <p className="text-rose-950 font-medium leading-relaxed bg-rose-50 p-2.5 rounded-lg border border-rose-200">
+                        {document.qualityReason ||
+                          'The uploaded image is a random photo or does not match Government of India UIDAI Aadhaar card specifications.'}
+                      </p>
+                      {document.customerMessage && (
+                        <div className="text-[11px] text-slate-700 italic bg-slate-50 p-2 rounded border border-slate-200">
+                          <strong className="text-slate-900">Customer Notice:</strong> {document.customerMessage}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Criteria Checklist */}
+                  <div className="border-t border-rose-100 pt-3 space-y-1.5 text-[11px]">
+                    <div className="font-semibold text-slate-800">Automated Intake Criteria Failures:</div>
+                    <div className="flex items-center gap-2 text-rose-700">
+                      <span className="w-3.5 h-3.5 rounded-full bg-rose-200 text-rose-800 flex items-center justify-center text-[9px] font-bold">✗</span>
+                      <span>Government of India Emblem & UIDAI Logo: <strong>Not Detected</strong></span>
+                    </div>
+                    <div className="flex items-center gap-2 text-rose-700">
+                      <span className="w-3.5 h-3.5 rounded-full bg-rose-200 text-rose-800 flex items-center justify-center text-[9px] font-bold">✗</span>
+                      <span>12-Digit Verhoeff Checksum: <strong>Missing / Unreadable</strong></span>
+                    </div>
+                    <div className="flex items-center gap-2 text-rose-700">
+                      <span className="w-3.5 h-3.5 rounded-full bg-rose-200 text-rose-800 flex items-center justify-center text-[9px] font-bold">✗</span>
+                      <span>Classifier Assessment: <strong>Random photo / Non-document object</strong></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 p-3 rounded-lg bg-rose-100/90 border border-rose-200 text-[11px] text-rose-900 flex items-center justify-between font-medium">
+                <span className="flex items-center gap-1.5">
+                  <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
+                  Security: High Severity Flag Logged to Immutable Audit Trail
+                </span>
+                <span className="font-bold underline cursor-pointer">Waiting for valid upload</span>
+              </div>
+            </div>
+          )}
+
+          {/* CROPPED / RETAKE DOCUMENT INSPECTION VIEW */}
+          {isRetake && (
+            <div className="p-6 font-sans text-slate-900 bg-amber-50/50 min-h-[480px] relative flex flex-col justify-between">
+              <div>
+                {/* Header */}
+                <div className="border-b-2 border-amber-500 pb-3 mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-bold shadow">
+                      <AlertCircle className="w-5 h-5 text-slate-950" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-sm text-amber-950 uppercase tracking-wide">
+                        Retake Required: Cropped or Cut-Off Photo
+                      </div>
+                      <div className="text-[11px] text-amber-800">
+                        Document: {document.docType.replace(/_/g, ' ').toUpperCase()}
+                      </div>
+                    </div>
+                  </div>
+                  <span className="px-2.5 py-1 rounded bg-amber-500 text-slate-950 font-mono text-[10px] font-bold shadow-sm">
+                    RETAKE NEEDED ⚠
+                  </span>
+                </div>
+
+                {/* Evidence Card */}
+                <div className="border border-amber-300 rounded-xl bg-white p-4 shadow-sm space-y-3.5">
+                  <div className="flex items-start gap-4">
+                    <div className="w-32 h-32 rounded-lg border-2 border-dashed border-amber-400 bg-amber-100/60 flex flex-col items-center justify-center shrink-0 text-amber-800">
+                      <AlertCircle className="w-8 h-8" />
+                      <span className="text-[9px] font-bold mt-1.5 text-center px-2">
+                        Margins Clipped
+                      </span>
+                    </div>
+
+                    <div className="flex-1 space-y-2 text-xs">
+                      <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                        <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
+                        Quality Agent Findings:
+                      </div>
+                      <p className="text-amber-950 font-medium leading-relaxed bg-amber-50 p-2.5 rounded-lg border border-amber-200">
+                        {document.qualityReason ||
+                          'The document photo is cropped or cut off. Margins or critical numbers are missing from the camera frame.'}
+                      </p>
+                      {document.customerMessage && (
+                        <div className="text-[11px] text-slate-700 italic bg-slate-50 p-2 rounded border border-slate-200">
+                          <strong className="text-slate-900">Customer Notice:</strong> {document.customerMessage}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="border-t border-amber-100 pt-3 space-y-1.5 text-[11px]">
+                    <div className="font-semibold text-slate-800">Requirements for Loan Officer Approval:</div>
+                    <div className="flex items-center gap-2 text-amber-900">
+                      <span className="w-3.5 h-3.5 rounded-full bg-amber-200 text-amber-950 flex items-center justify-center text-[9px] font-bold">!</span>
+                      <span>All 4 document corners must be clearly visible inside the photo frame.</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-amber-900">
+                      <span className="w-3.5 h-3.5 rounded-full bg-amber-200 text-amber-950 flex items-center justify-center text-[9px] font-bold">!</span>
+                      <span>Ensure the 12-digit Aadhaar number and full name are not cut off.</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-4 p-3 rounded-lg bg-amber-100/90 border border-amber-200 text-[11px] text-amber-900 flex items-center justify-between font-medium">
+                <span>Status: Awaiting clearer photo upload from customer</span>
+                <span className="font-bold">Waiting on Customer</span>
+              </div>
+            </div>
+          )}
+
           {isAadhaar && (
             <div className="p-6 font-sans text-slate-900 bg-gradient-to-b from-amber-50/50 via-white to-emerald-50/50 min-h-[420px] relative">
               <div className="flex items-center justify-between border-b-2 border-amber-500 pb-2 mb-4">
@@ -505,7 +674,7 @@ export const DocumentRenderer: React.FC<DocumentRendererProps> = ({
           )}
 
           {/* Fallback standard representation if none of the above specific presets */}
-          {!isHindiSlip && !isForgedPayslip && !isAadhaar && !isPan && !isTamilBill && !isInjectedForm16 && (
+          {!isHindiSlip && !isForgedPayslip && !isAadhaar && !isPan && !isTamilBill && !isInjectedForm16 && !isWrongDoc && !isRetake && (
             <div className="p-6 font-sans text-slate-900 bg-white min-h-[500px] text-[12px]">
               <div className="border-b-2 border-slate-800 pb-3 mb-4">
                 <div className="text-base font-bold text-slate-900">{document.title}</div>

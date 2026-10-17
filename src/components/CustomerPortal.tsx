@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ApplicantCase, DocType, Language } from '../types/docubridge';
+import React, { useState, useRef } from 'react';
+import { ApplicantCase, DocType, Language, DocRecord, DocField, FraudFlag } from '../types/docubridge';
 import {
   UploadCloud,
   CheckCircle2,
@@ -16,6 +16,11 @@ import {
   Sparkles,
   Smartphone,
   Info,
+  X,
+  Loader2,
+  FileUp,
+  RefreshCw,
+  ShieldAlert,
 } from 'lucide-react';
 
 interface CustomerPortalProps {
@@ -38,6 +43,10 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
   const [isMobileFrame, setIsMobileFrame] = useState(true);
   const [fieldConfirmed, setFieldConfirmed] = useState(false);
 
+  // Upload dialog state for individual document checklist items
+  const [activeUploadSlot, setActiveUploadSlot] = useState<DocType | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   // Localized UI strings
   const UI_TEXT: Record<Language, any> = {
     Hindi: {
@@ -52,6 +61,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       confirmSub: 'एजेंट द्वारा निकाली गई जानकारी की जांच करें',
       retakeBtn: 'साफ फोटो दोबारा लें',
       uploadBtn: 'अपलोड करें',
+      reuploadBtn: 'दोबारा अपलोड',
       recognised: 'स्वीकृत एवं सत्यापित',
       needsClearer: 'साफ फोटो की आवश्यकता है',
       missing: 'अपलोड बाकी है',
@@ -73,6 +83,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       confirmSub: 'AI படித்த தகவல்கள் சரியானவையா என்று சரிபார்க்கவும்',
       retakeBtn: 'மீண்டும் புகைப்படம் எடுக்கவும்',
       uploadBtn: 'பதிவேற்று',
+      reuploadBtn: 'மீண்டும் பதிவேற்று',
       recognised: 'சரிபார்க்கப்பட்டது',
       needsClearer: 'தெளிவான நகல் தேவை',
       missing: 'பதிவேற்ற வேண்டும்',
@@ -94,6 +105,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       confirmSub: 'Periksa data yang diekstrak oleh sistem sebelum diteruskan',
       retakeBtn: 'Ambil Ulang Foto',
       uploadBtn: 'Unggah',
+      reuploadBtn: 'Unggah Ulang',
       recognised: 'Terverifikasi',
       needsClearer: 'Perlu Foto Lebih Jelas',
       missing: 'Belum Diunggah',
@@ -115,6 +127,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       confirmSub: 'Kiểm tra thông tin do AI trích xuất',
       retakeBtn: 'Chụp lại ảnh rõ nét',
       uploadBtn: 'Tải lên',
+      reuploadBtn: 'Tải lại',
       recognised: 'Đã xác nhận',
       needsClearer: 'Cần ảnh rõ nét hơn',
       missing: 'Chưa tải lên',
@@ -136,6 +149,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       confirmSub: 'Review what our agents read from your documents',
       retakeBtn: 'Retake Photo',
       uploadBtn: 'Upload',
+      reuploadBtn: 'Re-upload',
       recognised: 'Recognised & Verified',
       needsClearer: 'Needs a clearer copy',
       missing: 'Missing upload',
@@ -157,6 +171,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       confirmSub: 'সিস্টেম দ্বারা সংগৃহীত তথ্য মিলিয়ে দেখুন',
       retakeBtn: 'পুনরায় ছবি তুলুন',
       uploadBtn: 'আপলোড করুন',
+      reuploadBtn: 'পুনরায় আপলোড',
       recognised: 'যাচাই সম্পন্ন',
       needsClearer: 'পরিষ্কার ছবি প্রয়োজন',
       missing: 'আপলোড বাকি আছে',
@@ -178,6 +193,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       confirmSub: 'વાંચેલ વિગતો તપાસો',
       retakeBtn: 'ફરીથી ફોટો લો',
       uploadBtn: 'અપલોડ કરો',
+      reuploadBtn: 'ફરી અપલોડ કરો',
       recognised: 'ચકાસાયેલ',
       needsClearer: 'સ્પષ્ટ ફોટો જરૂરી છે',
       missing: 'બાકી છે',
@@ -199,6 +215,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
       confirmSub: 'సిస్టమ్ చదివిన సమాచారాన్ని సరిచూసుకోండి',
       retakeBtn: 'మళ్లీ స్పష్టమైన ఫోటో తీయండి',
       uploadBtn: 'అప్‌లోడ్ చేయండి',
+      reuploadBtn: 'రీ-అప్‌లోడ్ చేయండి',
       recognised: 'ధృవీకరించబడింది',
       needsClearer: 'స్పష్టమైన కాపీ అవసరం',
       missing: 'అప్‌లోడ్ చేయాలి',
@@ -221,6 +238,445 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
     { type: 'proof_of_address', name: 'Proof of Address (Utility Bill)', desc: 'Electricity or Rental Lease' },
   ];
 
+  // Helper to open upload for a specific slot
+  const handleOpenSlotUpload = (docType: DocType) => {
+    setActiveUploadSlot(docType);
+  };
+
+  // Helper to trigger device file picker
+  const handleTriggerFileInput = (docType: DocType) => {
+    setActiveUploadSlot(docType);
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  // Process a selected or captured file
+  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !activeUploadSlot) return;
+
+    setIsProcessingUpload(true);
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const result = reader.result as string;
+        const base64 = result.split(',')[1] || result;
+
+        try {
+          const res = await fetch('/api/agent/pipeline', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              docTypeSlot: activeUploadSlot,
+              fileBase64: base64,
+              mimeType: file.type || 'image/jpeg',
+              fileName: file.name,
+            }),
+          });
+
+          const data = await res.json();
+          applyProcessedDocument(activeUploadSlot, data, file.name, result);
+        } catch (err) {
+          console.error('API error processing document:', err);
+          applyErrorDocument(
+            activeUploadSlot,
+            'Verification error: Failed to process document with Agent pipeline. Please check file format and try again.',
+            file.name,
+            result
+          );
+        } finally {
+          setIsProcessingUpload(false);
+          setActiveUploadSlot(null);
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error('File read error:', err);
+      setIsProcessingUpload(false);
+      setActiveUploadSlot(null);
+    }
+  };
+
+  // Apply a processed document result to the case
+  const applyProcessedDocument = (
+    slot: DocType,
+    data: any,
+    fileName: string,
+    previewDataUrl?: string
+  ) => {
+    const quality = (data.quality as 'ok' | 'retake' | 'wrong_doc') || 'wrong_doc';
+    const newDoc: DocRecord = {
+      id: data.documentId || `DOC-${Date.now()}`,
+      docType: slot,
+      title: `${slot.replace(/_/g, ' ').toUpperCase()} (${
+        quality === 'ok' ? 'Verified' : quality === 'retake' ? 'Cropped / Retake' : 'Rejected'
+      })`,
+      fileName,
+      fileUrl: previewDataUrl || data.fileUrl || '/mock_docs/aadhaar_priya.png',
+      uploadTime: new Date().toLocaleTimeString('en-US', { hour12: false }) + ' IST',
+      quality,
+      qualityReason: data.qualityReason,
+      language: (data.language as Language) || 'Hindi',
+      fields: data.fields || [],
+      flags: data.flags || [],
+      customerMessage: data.customerMessage,
+      statusText:
+        quality === 'ok'
+          ? 'Verified by Agent Graph'
+          : quality === 'retake'
+          ? 'Needs a clearer copy / Cropped'
+          : 'Invalid Document (Rejected by Agent)',
+    };
+
+    const updated = { ...currentCase };
+    updated.documents = {
+      ...updated.documents,
+      [slot]: newDoc,
+    };
+
+    // If an invalid document is uploaded, set risk level to High so loan officers can inspect
+    if (quality === 'wrong_doc') {
+      updated.riskLevel = 'High';
+      updated.status = 'Needs review';
+    } else if (quality === 'retake') {
+      updated.status = 'Waiting on customer';
+    } else {
+      const allVerified = REQUIRED_DOCS.every((req) => updated.documents[req.type]?.quality === 'ok');
+      if (allVerified && updated.riskLevel !== 'High') {
+        updated.status = 'Complete';
+      }
+    }
+
+    onUpdateCase(updated);
+  };
+
+  // Apply an explicit rejection / error document
+  const applyErrorDocument = (
+    slot: DocType,
+    reason: string,
+    fileName = 'uploaded_file.jpg',
+    previewDataUrl?: string
+  ) => {
+    const errorDoc: DocRecord = {
+      id: `DOC-ERR-${Date.now()}`,
+      docType: slot,
+      title: `${slot.replace(/_/g, ' ').toUpperCase()} (Rejected)`,
+      fileName,
+      fileUrl: previewDataUrl || '/mock_docs/aadhaar_priya.png',
+      uploadTime: new Date().toLocaleTimeString('en-US', { hour12: false }) + ' IST',
+      quality: 'wrong_doc',
+      qualityReason: reason,
+      language: 'Hindi',
+      customerMessage: 'दस्तावेज सत्यापन विफल: अपलोड की गई तस्वीर सही दस्तावेज नहीं है। कृपया असली दस्तावेज की साफ फोटो दोबारा लें।',
+      fields: [],
+      flags: [
+        {
+          id: `FLG-ERR-${Date.now()}`,
+          rule: 'Document Authenticity Check',
+          severity: 'High',
+          evidence: reason,
+          type: 'model_judgement',
+          category: 'consistency',
+        },
+      ],
+      statusText: 'Rejected: Invalid Document',
+    };
+
+    const updated = { ...currentCase };
+    updated.documents = {
+      ...updated.documents,
+      [slot]: errorDoc,
+    };
+    updated.riskLevel = 'High';
+    updated.status = 'Needs review';
+    onUpdateCase(updated);
+  };
+
+  // Simulate Cropped Aadhaar Card to test LLM retake detection
+  const handleSimulateCroppedDoc = (slot: DocType) => {
+    setIsProcessingUpload(true);
+    setTimeout(() => {
+      setIsProcessingUpload(false);
+      setActiveUploadSlot(null);
+
+      const croppedDoc: DocRecord = {
+        id: `DOC-CROP-${Date.now()}`,
+        docType: slot,
+        title: `${slot.replace(/_/g, ' ').toUpperCase()} (Cropped Photo)`,
+        fileName: `${slot}_cropped_camera.jpg`,
+        fileUrl: '/mock_docs/aadhaar_priya.png',
+        uploadTime: new Date().toLocaleTimeString('en-US', { hour12: false }) + ' IST',
+        quality: 'retake',
+        qualityReason:
+          'The Aadhaar card is cropped at the bottom margin. The 12-digit UIDAI number and security hologram are sliced outside the camera frame.',
+        customerMessage:
+          'आधार कार्ड का निचला हिस्सा कटा हुआ है और 12 अंकों का आधार नंबर नहीं दिख रहा है। कृपया पूरे कार्ड के चारों कोनों की साफ फोटो दोबारा लें। / Aadhaar card margins are clipped outside the frame. Please retake showing all 4 corners.',
+        language: 'Hindi',
+        fields: [],
+        flags: [
+          {
+            id: 'FLG-CROP-TEST',
+            rule: 'Document Margins & Completeness Inspection',
+            severity: 'Medium',
+            evidence: 'Bottom margin clipped by 22%; 12-digit UIDAI number obscured outside crop rectangle.',
+            type: 'model_judgement',
+            category: 'visual_tampering',
+          },
+        ],
+        statusText: 'Retake Required: Cropped Margins',
+      };
+
+      const updated = { ...currentCase };
+      updated.documents = { ...updated.documents, [slot]: croppedDoc };
+      updated.status = 'Waiting on customer';
+      onUpdateCase(updated);
+    }, 700);
+  };
+
+  // Simulate Random Photo (Selfie / Landscape) to test LLM rejection error
+  const handleSimulateRandomPhoto = (slot: DocType) => {
+    setIsProcessingUpload(true);
+    setTimeout(() => {
+      setIsProcessingUpload(false);
+      setActiveUploadSlot(null);
+
+      const rejectedDoc: DocRecord = {
+        id: `DOC-ERR-${Date.now()}`,
+        docType: slot,
+        title: `${slot.replace(/_/g, ' ').toUpperCase()} (Rejected - Random Photo)`,
+        fileName: 'nature_selfie_random.jpg',
+        fileUrl: '/mock_docs/random_photo_sample.png',
+        uploadTime: new Date().toLocaleTimeString('en-US', { hour12: false }) + ' IST',
+        quality: 'wrong_doc',
+        qualityReason:
+          'The uploaded file is a personal photo / landscape, NOT a Government of India Aadhaar Card. No UIDAI emblem or card structure was detected.',
+        customerMessage:
+          'अपलोड की गई तस्वीर आधार कार्ड नहीं है (सामान्य फोटो/सेल्फी पहचानी गई)। कृपया अपने असली आधार कार्ड की स्पष्ट फोटो अपलोड करें। / The uploaded photo is not an Aadhaar card. Please upload a clear photo of your real Aadhaar card.',
+        language: 'Hindi',
+        fields: [],
+        flags: [
+          {
+            id: 'FLG-RANDOM-PHOTO-REJECTED',
+            rule: 'Document Authenticity & Type Verification',
+            severity: 'High',
+            evidence: 'Image classified as random photo / non-document (Confidence 99%). Aadhaar UIDAI markers completely absent.',
+            type: 'model_judgement',
+            category: 'consistency',
+          },
+        ],
+        statusText: 'Rejected: Not a Valid Document',
+      };
+
+      const updated = { ...currentCase };
+      updated.documents = { ...updated.documents, [slot]: rejectedDoc };
+      updated.riskLevel = 'High';
+      updated.status = 'Needs review';
+      onUpdateCase(updated);
+    }, 700);
+  };
+
+  // Apply a clean standard preset document for the slot
+  const applyStandardPresetDoc = (slot: DocType) => {
+    setIsProcessingUpload(true);
+    setTimeout(() => {
+      setIsProcessingUpload(false);
+      setActiveUploadSlot(null);
+
+      const updated = { ...currentCase };
+      if (slot === 'salary_slip') {
+        updated.documents.salary_slip = {
+          id: `DOC-SAL-${Date.now()}`,
+          docType: 'salary_slip',
+          title: 'Salary Slip (सितंबर 2026 / September 2026)',
+          fileName: 'salary_slip_aditya_clean.pdf',
+          fileUrl: '/mock_docs/salary_hindi_clean.png',
+          uploadTime: new Date().toLocaleTimeString('en-US', { hour12: false }) + ' IST',
+          quality: 'ok',
+          language: 'Hindi',
+          statusText: 'Verified',
+          customerMessage: 'आपकी वेतन पर्ची सफलता से सत्यापित हो गई है (शुद्ध वेतन: ₹58,400)।',
+          fields: [
+            {
+              id: 'F-SAL-01',
+              name: 'employer_name',
+              label: 'Employer Name',
+              value_original: 'आदित्य टेक्सटाइल्स प्राइवेट लिमिटेड',
+              value_en: 'Aditya Textiles Private Limited',
+              page: 1,
+              bbox: [12, 18, 22, 82],
+              confidence: 0.98,
+              category: 'income',
+            },
+            {
+              id: 'F-SAL-06',
+              name: 'net_pay',
+              label: 'Net Pay',
+              value_original: '₹58,400.00',
+              value_en: '₹58,400.00',
+              page: 1,
+              bbox: [72, 58, 82, 90],
+              confidence: 0.99,
+              category: 'income',
+            },
+          ],
+          flags: [],
+        };
+      } else if (slot === 'aadhaar_card') {
+        updated.documents.aadhaar_card = {
+          id: `DOC-AADH-${Date.now()}`,
+          docType: 'aadhaar_card',
+          title: 'Aadhaar Card (e-KYC Copy)',
+          fileName: 'aadhaar_verified.pdf',
+          fileUrl: '/mock_docs/aadhaar_priya.png',
+          uploadTime: new Date().toLocaleTimeString('en-US', { hour12: false }) + ' IST',
+          quality: 'ok',
+          language: 'Hindi',
+          statusText: 'Verified',
+          customerMessage: 'आपका आधार कार्ड सफलतापूर्वक पढ़ लिया गया है।',
+          fields: [
+            {
+              id: 'F-AADHAAR-01',
+              name: 'full_name',
+              label: 'Applicant Name',
+              value_original: 'प्रिया शर्मा',
+              value_en: 'Priya Sharma',
+              page: 1,
+              bbox: [32, 28, 42, 65],
+              confidence: 0.99,
+              category: 'identity',
+            },
+            {
+              id: 'F-AADHAAR-02',
+              name: 'aadhaar_number',
+              label: 'Aadhaar Number',
+              value_original: '5489 2104 8921',
+              value_en: '5489 2104 8921',
+              page: 1,
+              bbox: [68, 25, 78, 75],
+              confidence: 0.99,
+              category: 'identity',
+              isSensitive: true,
+            },
+          ],
+          flags: [],
+        };
+      } else if (slot === 'pan_card') {
+        updated.documents.pan_card = {
+          id: `DOC-PAN-${Date.now()}`,
+          docType: 'pan_card',
+          title: 'PAN Card',
+          fileName: 'pan_card_verified.jpg',
+          fileUrl: '/mock_docs/pan_priya.png',
+          uploadTime: new Date().toLocaleTimeString('en-US', { hour12: false }) + ' IST',
+          quality: 'ok',
+          language: 'English',
+          statusText: 'Verified',
+          customerMessage: 'PAN Card verified successfully against NSDL format.',
+          fields: [
+            {
+              id: 'F-PAN-01',
+              name: 'pan_number',
+              label: 'PAN Number',
+              value_original: 'ABCPS1234D',
+              value_en: 'ABCPS1234D',
+              page: 1,
+              bbox: [52, 18, 64, 58],
+              confidence: 0.99,
+              category: 'identity',
+              isSensitive: true,
+            },
+          ],
+          flags: [],
+        };
+      } else if (slot === 'bank_statement') {
+        updated.documents.bank_statement = {
+          id: `DOC-BNK-${Date.now()}`,
+          docType: 'bank_statement',
+          title: 'Bank Statement (HDFC Bank)',
+          fileName: 'bank_statement_3mo.pdf',
+          fileUrl: '/mock_docs/bank_statement_hdfc.png',
+          uploadTime: new Date().toLocaleTimeString('en-US', { hour12: false }) + ' IST',
+          quality: 'ok',
+          language: 'English',
+          statusText: 'Verified',
+          customerMessage: 'Bank statement salary deposits reconciled.',
+          fields: [
+            {
+              id: 'F-BNK-03',
+              name: 'salary_credit',
+              label: 'Recurring Salary Credit',
+              value_original: '₹58,400.00 (NEFT CR-ADITYA TEXTILES)',
+              value_en: '₹58,400.00 (Aditya Textiles NEFT)',
+              page: 1,
+              bbox: [54, 52, 62, 92],
+              confidence: 0.99,
+              category: 'income',
+            },
+          ],
+          flags: [],
+        };
+      } else if (slot === 'proof_of_address') {
+        updated.documents.proof_of_address = {
+          id: `DOC-POA-${Date.now()}`,
+          docType: 'proof_of_address',
+          title: 'Electricity Bill (TANGEDCO)',
+          fileName: 'tangedco_ebill.jpg',
+          fileUrl: '/mock_docs/tangedco_bill.png',
+          uploadTime: new Date().toLocaleTimeString('en-US', { hour12: false }) + ' IST',
+          quality: 'ok',
+          language: 'Tamil',
+          statusText: 'Verified via Voice Note Context',
+          customerMessage: 'Address proof accepted with landlord tenancy context.',
+          fields: [
+            {
+              id: 'F-POA-02',
+              name: 'consumer_name',
+              label: 'Registered Consumer Name',
+              value_original: 'கே. சுந்தரம்',
+              value_en: 'K. Sundaram (Landlord)',
+              page: 1,
+              bbox: [28, 20, 36, 55],
+              confidence: 0.98,
+              category: 'address',
+            },
+          ],
+          flags: [],
+        };
+      } else if (slot === 'form_16') {
+        updated.documents.form_16 = {
+          id: `DOC-F16-${Date.now()}`,
+          docType: 'form_16',
+          title: 'Form 16 / ITR Certificate',
+          fileName: 'form16_tax_verified.pdf',
+          fileUrl: '/mock_docs/form16_clean.png',
+          uploadTime: new Date().toLocaleTimeString('en-US', { hour12: false }) + ' IST',
+          quality: 'ok',
+          language: 'English',
+          statusText: 'Verified',
+          customerMessage: 'Form 16 income tax deductions confirmed.',
+          fields: [
+            {
+              id: 'F-F16-01',
+              name: 'gross_salary',
+              label: 'Total Salary Paid',
+              value_original: '₹7,50,000.00',
+              value_en: '₹7,50,000.00',
+              page: 1,
+              bbox: [20, 20, 30, 80],
+              confidence: 0.99,
+              category: 'tax',
+            },
+          ],
+          flags: [],
+        };
+      }
+
+      onUpdateCase(updated);
+    }, 600);
+  };
+
   // Helper to trigger blurry demo state (Step 1 of demo script)
   const handleSimulateBlurryUpload = () => {
     setIsProcessingUpload(true);
@@ -238,7 +694,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
         };
       }
       onUpdateCase(updated);
-    }, 700);
+    }, 600);
   };
 
   // Helper to trigger clean retake upload (Step 2 of demo script)
@@ -257,7 +713,7 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
         };
       }
       onUpdateCase(updated);
-    }, 800);
+    }, 600);
   };
 
   // Simulate voice recording
@@ -284,6 +740,15 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen py-4 px-2 sm:px-6">
+      {/* Hidden file input for native camera / disk upload */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        accept="image/*,application/pdf"
+        onChange={handleFileInputChange}
+        className="hidden"
+      />
+
       {/* Device frame switch & Demo Trigger Bar */}
       <div className="w-full max-w-4xl flex flex-wrap items-center justify-between gap-3 mb-4 bg-slate-900/90 border border-slate-800 p-2.5 rounded-xl shadow-lg">
         <div className="flex items-center gap-3">
@@ -311,25 +776,12 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
           </div>
         </div>
 
-        {/* 3-Minute Demo Pitch Shortcuts */}
-        <div className="flex items-center gap-2">
-          <span className="text-[11px] text-amber-400 font-semibold flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5" /> Demo Fast-Track:
+        {/* Security & Compliance Info */}
+        <div className="flex items-center gap-2 text-xs text-slate-400">
+          <span className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium text-[11px]">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            DPDP 2023 · CMEK AES-256
           </span>
-          <button
-            onClick={handleSimulateBlurryUpload}
-            className="text-[11px] bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-1 rounded-md transition font-medium"
-            title="Step 1: Triggers 'Needs a clearer copy' with reason in customer language"
-          >
-            1. Trigger Blurry Warning
-          </button>
-          <button
-            onClick={handleSimulateCleanRetake}
-            className="text-[11px] bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 rounded-md transition font-medium"
-            title="Step 2: Customer retakes and checklist turns green"
-          >
-            2. Retake Clean (Turns Green)
-          </button>
         </div>
       </div>
 
@@ -466,12 +918,15 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                   const isUploaded = !!docRecord;
                   const isOk = docRecord?.quality === 'ok';
                   const isRetake = docRecord?.quality === 'retake';
+                  const isWrongDoc = docRecord?.quality === 'wrong_doc';
 
                   return (
                     <div
                       key={docItem.type}
                       className={`p-3.5 rounded-xl border transition-all ${
-                        isRetake
+                        isWrongDoc
+                          ? 'bg-rose-950/25 border-rose-500/50 shadow-md ring-1 ring-rose-500/30'
+                          : isRetake
                           ? 'bg-amber-950/20 border-amber-500/50 shadow-md ring-1 ring-amber-500/20'
                           : isOk
                           ? 'bg-slate-900/80 border-emerald-500/30'
@@ -482,14 +937,18 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                         <div className="flex items-start gap-3">
                           <div
                             className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-                              isRetake
+                              isWrongDoc
+                                ? 'bg-rose-500/20 text-rose-400'
+                                : isRetake
                                 ? 'bg-amber-500/20 text-amber-400'
                                 : isOk
                                 ? 'bg-emerald-500/20 text-emerald-400'
                                 : 'bg-slate-800 text-slate-500'
                             }`}
                           >
-                            {isRetake ? (
+                            {isWrongDoc ? (
+                              <ShieldAlert className="w-5 h-5 text-rose-400" />
+                            ) : isRetake ? (
                               <AlertCircle className="w-5 h-5 text-amber-400" />
                             ) : isOk ? (
                               <CheckCircle2 className="w-5 h-5 text-emerald-400" />
@@ -509,14 +968,41 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                             </div>
                             <div className="text-[11px] text-slate-400 mt-0.5">{docItem.desc}</div>
 
-                            {/* Live Agent feedback in customer's own language */}
-                            {isRetake && docRecord?.customerMessage && (
-                              <div className="mt-2.5 p-2.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-[11px] text-amber-200">
-                                <div className="font-bold flex items-center gap-1.5 text-amber-300 text-[10px] uppercase tracking-wider">
-                                  <AlertCircle className="w-3.5 h-3.5" />
-                                  {t.needsClearer}
+                            {/* REJECTED: Not a document or wrong document error alert */}
+                            {isWrongDoc && (
+                              <div className="mt-2.5 p-3 rounded-xl bg-rose-500/15 border border-rose-500/35 text-[11px] text-rose-200">
+                                <div className="font-bold flex items-center gap-1.5 text-rose-400 text-[10px] uppercase tracking-wider">
+                                  <ShieldAlert className="w-3.5 h-3.5 text-rose-400" />
+                                  DOCUMENT REJECTED - NOT A VALID {docItem.name.toUpperCase()}
                                 </div>
-                                <div className="mt-1 leading-snug">{docRecord.customerMessage}</div>
+                                <div className="mt-1 leading-snug font-medium text-rose-100">
+                                  {docRecord?.customerMessage ||
+                                    'अपलोड की गई तस्वीर मान्य दस्तावेज नहीं है। कृपया असली दस्तावेज की साफ फोटो अपलोड करें।'}
+                                </div>
+                                {docRecord?.qualityReason && (
+                                  <div className="mt-1.5 text-[10px] text-rose-300/80 font-mono bg-rose-950/40 p-1.5 rounded border border-rose-500/20">
+                                    Quality Agent Finding: {docRecord.qualityReason}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* RETAKE: Cropped or Blurry photo alert */}
+                            {isRetake && (
+                              <div className="mt-2.5 p-3 rounded-xl bg-amber-500/15 border border-amber-500/35 text-[11px] text-amber-200">
+                                <div className="font-bold flex items-center gap-1.5 text-amber-300 text-[10px] uppercase tracking-wider">
+                                  <AlertCircle className="w-3.5 h-3.5 text-amber-400" />
+                                  RETAKE REQUIRED - CROPPED OR CUT-OFF PHOTO
+                                </div>
+                                <div className="mt-1 leading-snug font-medium text-amber-100">
+                                  {docRecord?.customerMessage ||
+                                    'दस्तावेज का किनारा या नंबर कटा हुआ है। कृपया पूरे दस्तावेज की साफ फोटो दोबारा लें।'}
+                                </div>
+                                {docRecord?.qualityReason && (
+                                  <div className="mt-1.5 text-[10px] text-amber-300/80 font-mono bg-amber-950/40 p-1.5 rounded border border-amber-500/20">
+                                    Quality Agent Finding: {docRecord.qualityReason}
+                                  </div>
+                                )}
                               </div>
                             )}
 
@@ -530,24 +1016,52 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
                         </div>
 
                         {/* Status Badge & Action */}
-                        <div className="text-right shrink-0">
-                          {isRetake ? (
-                            <button
-                              onClick={handleSimulateCleanRetake}
-                              disabled={isProcessingUpload}
-                              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md transition"
-                            >
-                              <RotateCw className={`w-3.5 h-3.5 ${isProcessingUpload ? 'animate-spin' : ''}`} />
-                              {t.retakeBtn}
-                            </button>
+                        <div className="text-right shrink-0 flex flex-col items-end gap-1.5">
+                          {isWrongDoc ? (
+                            <div className="flex flex-col items-end gap-1">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                                ✗ Rejected
+                              </span>
+                              <button
+                                onClick={() => handleOpenSlotUpload(docItem.type)}
+                                disabled={isProcessingUpload}
+                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shadow-md transition cursor-pointer"
+                              >
+                                <RotateCw className={`w-3.5 h-3.5 ${isProcessingUpload ? 'animate-spin' : ''}`} />
+                                Re-upload Correct Doc
+                              </button>
+                            </div>
+                          ) : isRetake ? (
+                            <div className="flex flex-col items-end gap-1">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                ⚠ Cropped Photo
+                              </span>
+                              <button
+                                onClick={() => handleOpenSlotUpload(docItem.type)}
+                                disabled={isProcessingUpload}
+                                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-md transition cursor-pointer"
+                              >
+                                <RotateCw className={`w-3.5 h-3.5 ${isProcessingUpload ? 'animate-spin' : ''}`} />
+                                {t.retakeBtn}
+                              </button>
+                            </div>
                           ) : isOk ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                              <Check className="w-3 h-3" /> {t.recognised}
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                <Check className="w-3 h-3" /> {t.recognised}
+                              </span>
+                              <button
+                                onClick={() => handleOpenSlotUpload(docItem.type)}
+                                title="Re-upload without restarting application"
+                                className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                              >
+                                <RefreshCw className="w-3 h-3" />
+                              </button>
+                            </div>
                           ) : (
                             <button
-                              onClick={() => {}}
-                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs border border-slate-700 font-medium transition"
+                              onClick={() => handleOpenSlotUpload(docItem.type)}
+                              className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition shadow cursor-pointer"
                             >
                               <Camera className="w-3.5 h-3.5" /> {t.uploadBtn}
                             </button>
@@ -563,9 +1077,9 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
               <div className="p-3 bg-blue-950/30 border border-blue-900/50 rounded-xl text-[11px] text-blue-300 flex items-start gap-2.5">
                 <Info className="w-4 h-4 shrink-0 mt-0.5 text-blue-400" />
                 <div>
-                  <span className="font-semibold text-white">Multi-Agent Intake:</span> Documents are classified,
-                  translated from native script (Hindi, Tamil, Bahasa), and cross-checked in seconds with page bounding
-                  boxes.
+                  <span className="font-semibold text-white">Multi-Agent Intake:</span> Click any document's{' '}
+                  <strong className="text-white">Upload</strong> or <strong className="text-white">Retake</strong> button
+                  to capture from your camera, choose a local PDF/scan, or select an instant verified synthetic sample!
                 </div>
               </div>
             </div>
@@ -722,6 +1236,142 @@ export const CustomerPortal: React.FC<CustomerPortalProps> = ({
           )}
         </div>
       </div>
+
+      {/* Upload Options Dialog for Individual Slot */}
+      {activeUploadSlot && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-xs p-4">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            <div className="px-5 py-3.5 bg-slate-900 border-b border-slate-800 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <FileUp className="w-4 h-4 text-blue-400" />
+                <h3 className="text-sm font-bold text-white">
+                  Upload {activeUploadSlot.replace(/_/g, ' ').toUpperCase()}
+                </h3>
+              </div>
+              <button
+                onClick={() => setActiveUploadSlot(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-3.5">
+              <p className="text-xs text-slate-300">
+                Choose how you would like to submit or test this document for the 7-agent pipeline:
+              </p>
+
+              {/* Option 1: Native device file or camera capture */}
+              <button
+                onClick={() => {
+                  if (fileInputRef.current) {
+                    fileInputRef.current.click();
+                  }
+                }}
+                disabled={isProcessingUpload}
+                className="w-full p-3.5 rounded-xl border border-blue-500/40 bg-blue-950/30 hover:bg-blue-950/50 flex items-center justify-between text-left transition group cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow">
+                    <Camera className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-white group-hover:text-blue-300 transition">
+                      Upload from Camera / Files
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      Pick any JPG, PNG, PDF from your phone or desktop
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-blue-400" />
+              </button>
+
+              {/* Option 2: Digital e-document instant load */}
+              <button
+                onClick={() => applyStandardPresetDoc(activeUploadSlot)}
+                disabled={isProcessingUpload}
+                className="w-full p-3 rounded-xl border border-emerald-500/40 bg-emerald-950/20 hover:bg-emerald-950/40 flex items-center justify-between text-left transition group cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shadow">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-white group-hover:text-emerald-300 transition">
+                      Load Verified Official Document
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      Official verified UIDAI e-KYC copy
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-emerald-400" />
+              </button>
+
+              {/* Option 3: Simulate Cropped Aadhaar Card */}
+              <button
+                onClick={() => handleSimulateCroppedDoc(activeUploadSlot)}
+                disabled={isProcessingUpload}
+                className="w-full p-3 rounded-xl border border-amber-500/40 bg-amber-950/20 hover:bg-amber-950/40 flex items-center justify-between text-left transition group cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-amber-600 text-white flex items-center justify-center shadow">
+                    <AlertCircle className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-amber-200 group-hover:text-amber-100 transition">
+                      Test Cropped Document (Retake Check)
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      Simulate photo where Aadhaar 12-digit number is cut off
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400" />
+              </button>
+
+              {/* Option 4: Simulate Random Photo Rejection */}
+              <button
+                onClick={() => handleSimulateRandomPhoto(activeUploadSlot)}
+                disabled={isProcessingUpload}
+                className="w-full p-3 rounded-xl border border-rose-500/40 bg-rose-950/20 hover:bg-rose-950/40 flex items-center justify-between text-left transition group cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-rose-600 text-white flex items-center justify-center shadow">
+                    <ShieldAlert className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-rose-200 group-hover:text-rose-100 transition">
+                      Test Random Photo (Rejection Error)
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      Simulate selfie/landscape photo rejected by LLM
+                    </div>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-rose-400" />
+              </button>
+
+              {isProcessingUpload && (
+                <div className="p-3 bg-blue-950/40 border border-blue-500/40 rounded-xl flex items-center justify-center gap-2 text-xs text-blue-300">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Running 7-Agent Intake Pipeline...
+                </div>
+              )}
+            </div>
+
+            <div className="px-5 py-3 bg-slate-900 border-t border-slate-800 flex justify-end">
+              <button
+                onClick={() => setActiveUploadSlot(null)}
+                className="px-4 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-white"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
