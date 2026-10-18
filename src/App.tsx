@@ -10,6 +10,7 @@ import { RequestInfoModal } from './components/RequestInfoModal';
 import { UploadCustomDocModal } from './components/UploadCustomDocModal';
 import { LoginPage } from './components/LoginPage';
 import { CreateCustomerModal } from './components/CreateCustomerModal';
+import { AboutModal } from './components/AboutModal';
 
 export default function App() {
   const [cases, setCases] = useState<ApplicantCase[]>(PRESET_APPLICANTS);
@@ -18,6 +19,7 @@ export default function App() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState<boolean>(false);
   const [isRequestInfoOpen, setIsRequestInfoOpen] = useState<boolean>(false);
   const [isCreateCustomerOpen, setIsCreateCustomerOpen] = useState<boolean>(false);
+  const [isAboutOpen, setIsAboutOpen] = useState<boolean>(false);
   const [requestInfoDocType, setRequestInfoDocType] = useState<string>('Form 16 or Latest ITR');
 
   const currentCase = cases.find((c) => c.id === currentCaseId) || cases[0];
@@ -151,6 +153,7 @@ export default function App() {
         onOpenUploadModal={() => setIsUploadModalOpen(true)}
         onToggleRole={handleToggleRole}
         onOpenCreateCustomer={() => setIsCreateCustomerOpen(true)}
+        onOpenAbout={() => setIsAboutOpen(true)}
       />
 
       <ImpactStatsStrip />
@@ -195,6 +198,8 @@ export default function App() {
         onClose={() => setIsUploadModalOpen(false)}
         onDocumentProcessed={handleDocumentProcessed}
       />
+
+      <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
     </div>
   );
 }

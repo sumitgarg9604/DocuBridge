@@ -13,6 +13,7 @@ import {
   RefreshCw,
   ChevronDown,
   UserPlus,
+  Sparkles,
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -24,6 +25,7 @@ interface HeaderProps {
   onOpenUploadModal: () => void;
   onToggleRole: () => void;
   onOpenCreateCustomer?: () => void;
+  onOpenAbout?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -35,6 +37,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenUploadModal,
   onToggleRole,
   onOpenCreateCustomer,
+  onOpenAbout,
 }) => {
   const isCustomer = session.role === 'customer';
 
@@ -148,6 +151,17 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="text-[10px] text-slate-400 mt-0.5 leading-none">{session.roleTitle}</div>
           </div>
         </div>
+
+        {/* About / Built With Gemini */}
+        {onOpenAbout && (
+          <button
+            onClick={onOpenAbout}
+            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-blue-400 hover:text-blue-300 border border-slate-700 transition cursor-pointer"
+            title="About — Built With Gemini"
+          >
+            <Sparkles className="w-4 h-4" />
+          </button>
+        )}
 
         {/* Sign Out */}
         <button
