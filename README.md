@@ -64,13 +64,70 @@ Dual portal: Customer / Staff Console     7-agent pipeline orchestration     Dep
 
 Documents and audio are sent directly as inline multimodal data to Gemini — no separate OCR or Speech-to-Text service required.
 
-## Running locally
+## Setup
+
+### Prerequisites
+
+- **Node.js 20+** (tested on Node 22) and npm
+- A free **Gemini API key** — see below
+
+### 1. Clone and install
 
 ```bash
+git clone https://github.com/sumitgarg9604/DocuBridge.git
+cd DocuBridge
 npm install
-cp .env.example .env   # add your GEMINI_API_KEY (free — https://aistudio.google.com/apikey)
-npm run dev             # http://localhost:3000
 ```
+
+### 2. Get a Gemini API key (free)
+
+1. Go to **[aistudio.google.com/apikey](https://aistudio.google.com/apikey)** and sign in with a Google account.
+2. Click **"Create API key"**.
+3. Choose or create a Google Cloud project when prompted — any project works, this is free-tier by default.
+4. Copy the generated key (starts with `AIza...` or `AQ...`).
+
+### 3. Configure environment variables
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and set:
+
+```bash
+GEMINI_API_KEY="your-key-here"
+APP_URL="http://localhost:3000"
+```
+
+`.env` is git-ignored — never commit real keys.
+
+### 4. Run the dev server
+
+```bash
+npm run dev
+```
+
+Open **[http://localhost:3000](http://localhost:3000)**. You should see the login screen; use the "Developer Bypass" buttons to sign in instantly as either the applicant (Priya Sharma) or the loan officer (Amit Kumar) without a real account.
+
+### 5. Verify it's working
+
+- Hit `http://localhost:3000/api/health` — should return `{"status":"ok","geminiConfigured":true,...}`. If `geminiConfigured` is `false`, double-check your `.env` key.
+- Log in as the applicant, go to **Voice Note**, tap record, say something, tap stop — you should get a real Gemini transcription back within a few seconds.
+
+### Other useful scripts
+
+```bash
+npm run build     # production build (outputs to dist/)
+npm run preview   # preview the production build locally
+npm run lint      # type-check with tsc --noEmit
+```
+
+### Troubleshooting
+
+- **`geminiConfigured: false`** — your `.env` is missing, in the wrong location (must be the repo root), or still has the placeholder `MY_GEMINI_API_KEY` value.
+- **A Gemini model returns 404 ("no longer available")** — Google periodically deprecates model versions. The pipeline already retries across a fallback chain (`gemini-3.5-flash` → `gemini-3.8-flash` → ...); if all of them fail, check [ai.google.dev/gemini-api/docs/models](https://ai.google.dev/gemini-api/docs/models) for current model names and update `server.ts`.
+- **429 rate-limit errors** — expected occasionally on the free tier under heavy testing; the fallback chain usually absorbs these by moving to the next model.
+- **Microphone recording doesn't work** — `getUserMedia` requires either `localhost` or HTTPS; it won't work over plain HTTP on a non-localhost address.
 
 ## Judging-criteria alignment
 
